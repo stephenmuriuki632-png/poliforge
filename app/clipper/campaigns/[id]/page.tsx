@@ -1,8 +1,12 @@
-"use client";
-
 import Link from "next/link";
 
-export default function CampaignDetailsPage() {
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function CampaignDetailsPage({ params }: Props) {
+  const { id } = await params;
+
   return (
     <main className="min-h-screen bg-[#050505] text-white">
       <header className="border-b border-white/10">
@@ -25,51 +29,18 @@ export default function CampaignDetailsPage() {
 
       <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
         <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 sm:p-8">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <span className="inline-flex rounded-full border border-white/10 px-3 py-1 text-xs text-white/50">
-                Open for clippers
-              </span>
+          <span className="inline-flex rounded-full border border-white/10 px-3 py-1 text-xs text-white/50">
+            Open for clippers
+          </span>
 
-              <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
-                Campaign Video Clipping
-              </h1>
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
+            Campaign Video Clipping
+          </h1>
 
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/40">
-                Create engaging short-form clips from campaign footage.
-                Focus on memorable statements, important messages and
-                moments that work well on social media.
-              </p>
-            </div>
-
-            <div className="shrink-0 rounded-2xl border border-white/10 bg-white/[0.03] p-5 lg:min-w-52">
-              <p className="text-xs uppercase tracking-[0.18em] text-white/25">
-                Approval reward
-              </p>
-
-              <p className="mt-2 text-3xl font-semibold">
-                KES 100
-              </p>
-
-              <p className="mt-1 text-xs text-white/30">
-                Per approved clip
-              </p>
-
-              <div className="mt-4 border-t border-white/10 pt-4">
-                <p className="text-xs text-white/30">
-                  View reward
-                </p>
-
-                <p className="mt-1 text-lg font-semibold">
-                  KES 50
-                </p>
-
-                <p className="text-xs text-white/20">
-                  Per 1,000 verified views
-                </p>
-              </div>
-            </div>
-          </div>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/40">
+            Create engaging short-form clips from campaign footage
+            and earn from approved clips and verified views.
+          </p>
         </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
@@ -112,13 +83,14 @@ export default function CampaignDetailsPage() {
                 </p>
 
                 <p>
-                  Prioritize clear statements, interesting reactions,
-                  policy messages and memorable quotes.
+                  Prioritize clear statements, policy messages,
+                  memorable quotes and moments that can capture
+                  attention quickly.
                 </p>
 
                 <p>
-                  Keep clips concise and make sure the main message is
-                  understandable without unnecessary context.
+                  Keep clips concise and make the main message easy
+                  to understand.
                 </p>
               </div>
             </section>
@@ -129,25 +101,16 @@ export default function CampaignDetailsPage() {
               </p>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <Requirement
-                  title="Format"
-                  value="Vertical 9:16"
-                />
-
+                <Requirement title="Format" value="Vertical 9:16" />
                 <Requirement
                   title="Platforms"
                   value="TikTok · Instagram · YouTube"
                 />
-
                 <Requirement
                   title="Style"
                   value="Short-form social"
                 />
-
-                <Requirement
-                  title="Clips needed"
-                  value="10 clips"
-                />
+                <Requirement title="Clips needed" value="10 clips" />
               </div>
             </section>
           </div>
@@ -173,12 +136,12 @@ export default function CampaignDetailsPage() {
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-black/50">
-                Start working on this campaign and submit your first
-                clip for review.
+                Start working on this campaign and submit your clip
+                for review.
               </p>
 
               <Link
-                href="/clipper/campaigns/test-campaign/submit"
+                href={`/clipper/campaigns/${id}/submit`}
                 className="mt-6 block w-full rounded-xl bg-black px-5 py-3.5 text-center text-sm font-semibold text-white transition hover:bg-black/80"
               >
                 Start clipping
@@ -186,23 +149,21 @@ export default function CampaignDetailsPage() {
             </section>
 
             <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-6">
-              <p className="text-sm font-medium">
-                How you earn
-              </p>
+              <p className="text-sm font-medium">How you earn</p>
 
               <div className="mt-4 space-y-3 text-xs leading-5 text-white/30">
                 <p>
                   <span className="text-white/60">
-                    1. Approval reward:
+                    Approval reward:
                   </span>{" "}
-                  Earn KES 100 when your clip is approved.
+                  KES 100 when your clip is approved.
                 </p>
 
                 <p>
                   <span className="text-white/60">
-                    2. View reward:
+                    View reward:
                   </span>{" "}
-                  Earn KES 50 for every 1,000 verified views.
+                  KES 50 for every 1,000 verified views.
                 </p>
               </div>
             </section>
