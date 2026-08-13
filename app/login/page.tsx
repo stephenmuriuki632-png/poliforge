@@ -1,10 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    setError("");
+    setLoading(true);
+
+    const { data, error: loginError } =
+      await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+    setLoading(false);
+
+    if (loginError) {
+      setError(loginError.message);
+      return;
+    }
+
+    const role = data.user?.user_metadata?.role;
+
+    if (role === "clipper") {
+      window.location.href = "/clipper/dashboard";
+    } else {
+      window.location.href = "/campaign/dashboard";
+    }
+  };
 
   return (
     <main className="min-h-screen bg-[#070707] text-white flex">
@@ -15,6 +48,7 @@ export default function LoginPage() {
 
         <div>
           <div className="mb-6 h-1 w-16 bg-white rounded-full" />
+
           <h1 className="text-6xl font-bold leading-[1.05] tracking-tight max-w-xl">
             Build.
             <br />
@@ -55,7 +89,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-sm text-white/60 mb-2">
                 Email address
@@ -63,7 +97,10 @@ export default function LoginPage() {
 
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
+                required
                 className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition placeholder:text-white/20"
               />
             </div>
@@ -76,7 +113,10 @@ export default function LoginPage() {
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
+                  required
                   className="w-full bg-transparent border-b border-white/20 py-3 pr-20 outline-none focus:border-white transition placeholder:text-white/20"
                 />
 
@@ -90,6 +130,12 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {error && (
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {error}
+              </div>
+            )}
+
             <div className="flex justify-end">
               <button
                 type="button"
@@ -101,9 +147,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="w-full bg-white text-black py-4 rounded-full font-semibold hover:bg-white/80 transition"
+              disabled={loading}
+              className="w-full bg-white text-black py-4 rounded-full font-semibold hover:bg-white/80 transition disabled:opacity-50"
             >
-              Enter PoliForge →
+              {loading ? "Signing in..." : "Enter PoliForge →"}
             </button>
           </form>
 
@@ -112,13 +159,6 @@ export default function LoginPage() {
             <span className="text-xs text-white/20">OR</span>
             <div className="h-px bg-white/10 flex-1" />
           </div>
-
-          <button
-            type="button"
-            className="w-full border border-white/10 rounded-full py-4 hover:bg-white/5 transition"
-          >
-            Continue with Google
-          </button>
 
           <p className="text-center text-sm text-white/30 mt-8">
             New to PoliForge?{" "}

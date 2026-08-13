@@ -42,7 +42,7 @@ export default function CampaignDashboard() {
             <SideLink label="Overview" active />
             <SideLink label="Videos" />
             <SideLink label="Clipping campaigns" />
-            <SideLink label="Submissions" />
+            <Link href="/campaign/clipping-campaigns/test-campaign/submissions" className="block rounded-xl px-3 py-2 text-sm text-white/50 hover:bg-white/5 hover:text-white">Submissions</Link>
             <SideLink label="Clippers" />
             <SideLink label="Analytics" />
           </nav>
@@ -160,11 +160,13 @@ export default function CampaignDashboard() {
               icon="◉"
             />
 
-            <OverviewCard
-              title="Submissions"
-              description="Clips waiting for review"
-              icon="✓"
-            />
+            <Link href="/campaign/clipping-campaigns/test-campaign/submissions" className="block">
+              <OverviewCard
+                title="Submissions"
+                description="Clips waiting for review"
+                icon="✓"
+              />
+            </Link>
 
             <OverviewCard
               title="Clippers"

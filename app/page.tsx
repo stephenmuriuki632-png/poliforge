@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const features = [
@@ -49,6 +50,12 @@ export default function Home() {
 
   const scrollTo = (id: string) => {
     setMenuOpen(false);
+
+    if (id === "start") {
+      window.location.href = "/signup";
+      return;
+    }
+
     document.getElementById(id)?.scrollIntoView({
       behavior: "smooth",
     });
@@ -105,12 +112,12 @@ export default function Home() {
           </nav>
 
           {/* DESKTOP CTA */}
-          <button
-            onClick={() => scrollTo("start")}
+          <Link
+            href="/signup"
             className="hidden rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-white/85 md:block"
           >
             Get started
-          </button>
+          </Link>
 
           {/* MOBILE MENU */}
           <button
@@ -187,15 +194,15 @@ export default function Home() {
                 products that are simple, powerful and ready for the world.
               </p>
 
-              <button
-                onClick={() => scrollTo("start")}
+              <Link
+                href="/signup"
                 className="group flex w-fit items-center gap-4 rounded-full bg-white px-6 py-4 font-semibold text-black transition hover:scale-[1.02]"
               >
                 Start building
                 <span className="transition-transform group-hover:translate-x-1">
                   →
                 </span>
-              </button>
+              </Link>
             </div>
           </div>
 
