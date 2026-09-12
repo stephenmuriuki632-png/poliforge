@@ -1,10 +1,76 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../../../lib/supabase";
+
+type Campaign = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  created_at: string;
+};
 
 export default function ClipperDashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState("");
+  const [error, setError] = useState("");
+
+  async function loadCampaigns(showRefresh = false) {
+    if (showRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    setError("");
+
+    const { data, error: campaignsError } = await supabase
+      .from("clipping_campaigns")
+      .select("id, title, description, status, created_at, campaign_id")
+      .order("created_at", { ascending: false });
+
+    console.log("=== ALL CLIPPING CAMPAIGNS ===");
+    console.table(data ?? []);
+    console.log("CLIPPER CAMPAIGNS RESULT:", {
+      data,
+      error: campaignsError,
+      count: data?.length ?? 0,
+    });
+
+    if (campaignsError) {
+      console.error("CLIPPER CAMPAIGNS ERROR:", campaignsError);
+      setError(campaignsError.message);
+      setCampaigns([]);
+    } else {
+      setCampaigns(data ?? []);
+    }
+
+    setLoading(false);
+    setRefreshing(false);
+  }
+
+  useEffect(() => {
+    loadCampaigns();
+  }, []);
+
+  const filteredCampaigns = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) {
+      return campaigns;
+    }
+
+    return campaigns.filter(
+      (campaign) =>
+        campaign.title.toLowerCase().includes(query) ||
+        (campaign.description ?? "").toLowerCase().includes(query)
+    );
+  }, [campaigns, search]);
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
@@ -22,7 +88,11 @@ export default function ClipperDashboard() {
           menuOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
       >
-        <Link href="/" className="flex items-center gap-3 px-2">
+        <Link
+          href="/"
+          onClick={() => setMenuOpen(false)}
+          className="flex items-center gap-3 px-2"
+        >
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white font-bold text-black">
             P
           </div>
@@ -36,10 +106,10 @@ export default function ClipperDashboard() {
           </p>
 
           <nav className="mt-3 space-y-1">
-            <SideLink label="Discover" active />
-            <SideLink label="My clips" />
-            <SideLink label="Submissions" />
-            <SideLink label="Earnings" />
+            <SideLink href="/clipper/dashboard" label="Discover" active />
+            <SideLink href="/clipper/clips" label="My clips" />
+            <SideLink href="/clipper/submissions" label="Submissions" />
+            <SideLink href="/clipper/earnings" label="Earnings" />
             <SideLink label="Performance" />
           </nav>
         </div>
@@ -110,8 +180,8 @@ export default function ClipperDashboard() {
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/40">
-              Find campaign opportunities, turn campaign footage into
-              short-form content and earn rewards for approved clips.
+              Find campaign opportunities, create short-form content and earn
+              rewards for approved clips.
             </p>
           </section>
 
@@ -123,6 +193,8 @@ export default function ClipperDashboard() {
 
                 <input
                   type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search campaigns..."
                   className="w-full bg-transparent py-4 text-sm outline-none placeholder:text-white/20"
                 />
@@ -134,25 +206,25 @@ export default function ClipperDashboard() {
             </div>
           </section>
 
-          {/* Quick stats */}
+          {/* Stats */}
           <section className="mt-6 grid gap-4 sm:grid-cols-3">
             <InfoCard
-              title="Available campaigns"
-              description="Campaigns you can apply to"
+              title={String(campaigns.length)}
+              description="Active campaigns available"
             />
 
             <InfoCard
-              title="Your submissions"
-              description="Clips you've submitted"
+              title="—"
+              description="Your submitted clips"
             />
 
             <InfoCard
-              title="Your earnings"
-              description="Rewards from approved clips"
+              title="—"
+              description="Your total earnings"
             />
           </section>
 
-          {/* Discover area */}
+          {/* Campaigns */}
           <section className="mt-8">
             <div className="flex items-end justify-between">
               <div>
@@ -165,30 +237,67 @@ export default function ClipperDashboard() {
                 </h2>
               </div>
 
-              <button className="hidden text-sm text-white/40 hover:text-white sm:block">
-                View all →
+              <button
+                onClick={() => loadCampaigns(true)}
+                disabled={refreshing}
+                className="hidden text-sm text-white/40 transition hover:text-white disabled:opacity-40 sm:block"
+              >
+                {refreshing ? "Refreshing..." : "Refresh ↻"}
               </button>
             </div>
 
-            {/* Empty state */}
-            <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.015] px-6 py-16 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-xl">
-                ✂
+            {error && (
+              <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/5 px-5 py-4 text-sm text-red-300">
+                {error}
               </div>
+            )}
 
-              <h3 className="mt-6 text-lg font-semibold">
-                No campaigns available yet
-              </h3>
+            {loading ? (
+              <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.015] px-6 py-16 text-center">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-white/10 border-t-white" />
 
-              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-white/30">
-                New clipping opportunities will appear here when
-                campaigns publish jobs for creators.
-              </p>
+                <p className="mt-5 text-sm text-white/30">
+                  Loading campaigns...
+                </p>
+              </div>
+            ) : filteredCampaigns.length === 0 ? (
+              <div className="mt-5 rounded-3xl border border-white/10 bg-white/[0.015] px-6 py-16 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-xl">
+                  ✂
+                </div>
 
-              <button className="mt-6 rounded-xl border border-white/10 px-5 py-3 text-sm text-white/50 hover:bg-white/5 hover:text-white">
-                Refresh campaigns
-              </button>
-            </div>
+                <h3 className="mt-6 text-lg font-semibold">
+                  {search
+                    ? "No campaigns match your search"
+                    : "No campaigns available yet"}
+                </h3>
+
+                <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-white/30">
+                  {search
+                    ? "Try a different search term."
+                    : "New clipping opportunities will appear here when campaigns publish jobs."}
+                </p>
+
+                {!search && (
+                  <button
+                    onClick={() => loadCampaigns(true)}
+                    disabled={refreshing}
+                    className="mt-6 rounded-xl border border-white/10 px-5 py-3 text-sm text-white/50 transition hover:bg-white/5 hover:text-white disabled:opacity-40"
+                  >
+                    {refreshing ? "Refreshing..." : "Refresh campaigns"}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                {filteredCampaigns.map((campaign) => (
+                  <CampaignCard
+                    key={campaign.id}
+                    campaign={campaign}
+                  />
+                ))}
+              </div>
+            )}
           </section>
 
           {/* How it works */}
@@ -234,22 +343,76 @@ export default function ClipperDashboard() {
 }
 
 function SideLink({
+  href,
   label,
   active = false,
 }: {
+  href?: string;
   label: string;
   active?: boolean;
 }) {
+  const className = `block w-full rounded-xl px-3 py-2.5 text-left text-sm transition ${
+    active
+      ? "bg-white text-black"
+      : "text-white/40 hover:bg-white/5 hover:text-white"
+  }`;
+
+  if (!href) {
+    return (
+      <button className={className}>
+        {label}
+      </button>
+    );
+  }
+
   return (
-    <button
-      className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition ${
-        active
-          ? "bg-white text-black"
-          : "text-white/40 hover:bg-white/5 hover:text-white"
-      }`}
-    >
+    <Link href={href} className={className}>
       {label}
-    </button>
+    </Link>
+  );
+}
+
+function CampaignCard({
+  campaign,
+}: {
+  campaign: Campaign;
+}) {
+  return (
+    <article className="rounded-3xl border border-white/10 bg-white/[0.02] p-6 transition hover:border-white/20 hover:bg-white/[0.035]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <span className="inline-flex rounded-full border border-green-500/20 bg-green-500/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-green-300">
+            Active
+          </span>
+
+          <h3 className="mt-4 text-xl font-semibold">
+            {campaign.title}
+          </h3>
+        </div>
+
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-black">
+          ✂
+        </div>
+      </div>
+
+      <p className="mt-4 line-clamp-3 text-sm leading-6 text-white/40">
+        {campaign.description || "No campaign description provided."}
+      </p>
+
+      <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-5">
+        <p className="text-xs text-white/25">
+          Published{" "}
+          {new Date(campaign.created_at).toLocaleDateString()}
+        </p>
+
+        <Link
+          href={`/clipper/campaigns/${campaign.id}`}
+          className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-white/80"
+        >
+          View campaign →
+        </Link>
+      </div>
+    </article>
   );
 }
 
@@ -262,7 +425,7 @@ function InfoCard({
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.015] p-5">
-      <p className="text-sm font-medium">{title}</p>
+      <p className="text-2xl font-semibold">{title}</p>
 
       <p className="mt-2 text-xs leading-5 text-white/30">
         {description}
@@ -290,3 +453,5 @@ function Step({
     </div>
   );
 }
+
+

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
+type Role = "campaign" | "clipper";
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -17,39 +19,69 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const { data, error: loginError } =
-      await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+    try {
+      const { data, error: loginError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
 
-    setLoading(false);
+      if (loginError) {
+        setError(loginError.message);
+        setLoading(false);
+        return;
+      }
 
-    if (loginError) {
-      setError(loginError.message);
-      return;
-    }
+      if (!data.user) {
+        setError("Unable to sign in. Please try again.");
+        setLoading(false);
+        return;
+      }
 
-    const role = data.user?.user_metadata?.role;
+      // Read the authoritative role from public.profiles
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
 
-    if (role === "clipper") {
-      window.location.href = "/clipper/dashboard";
-    } else {
-      window.location.href = "/campaign/dashboard";
+      if (profileError) {
+        console.error(profileError);
+        setError(
+          "Your account was signed in, but your profile could not be found."
+        );
+        setLoading(false);
+        return;
+      }
+
+      const role = profile.role as Role;
+
+      if (role === "clipper") {
+        window.location.href = "/clipper/dashboard";
+      } else if (role === "campaign") {
+        window.location.href = "/campaign/dashboard";
+      } else {
+        setError("Your account has an invalid role.");
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-[#070707] text-white flex">
-      <section className="hidden lg:flex lg:w-1/2 min-h-screen flex-col justify-between p-12 border-r border-white/10">
+    <main className="flex min-h-screen bg-[#070707] text-white">
+      <section className="hidden min-h-screen w-1/2 flex-col justify-between border-r border-white/10 p-12 lg:flex">
         <Link href="/" className="text-2xl font-bold tracking-tight">
           Poli<span className="text-white/40">Forge</span>
         </Link>
 
         <div>
-          <div className="mb-6 h-1 w-16 bg-white rounded-full" />
+          <div className="mb-6 h-1 w-16 rounded-full bg-white" />
 
-          <h1 className="text-6xl font-bold leading-[1.05] tracking-tight max-w-xl">
+          <h1 className="max-w-xl text-6xl font-bold leading-[1.05] tracking-tight">
             Build.
             <br />
             Ship.
@@ -57,8 +89,8 @@ export default function LoginPage() {
             <span className="text-white/30">Launch.</span>
           </h1>
 
-          <p className="mt-8 text-white/40 max-w-md text-lg leading-8">
-            A modern workspace for turning ideas into real products.
+          <p className="mt-8 max-w-md text-lg leading-8 text-white/40">
+            A modern workspace for turning campaign ideas into real reach.
           </p>
         </div>
 
@@ -67,16 +99,16 @@ export default function LoginPage() {
         </p>
       </section>
 
-      <section className="w-full lg:w-1/2 min-h-screen flex items-center justify-center px-6 py-12">
+      <section className="flex min-h-screen w-full items-center justify-center px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-sm">
-          <div className="lg:hidden mb-14">
+          <div className="mb-14 lg:hidden">
             <Link href="/" className="text-2xl font-bold">
               PoliForge
             </Link>
           </div>
 
           <div className="mb-10">
-            <p className="text-xs uppercase tracking-[0.25em] text-white/30 mb-4">
+            <p className="mb-4 text-xs uppercase tracking-[0.25em] text-white/30">
               Welcome back
             </p>
 
@@ -91,7 +123,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm text-white/60 mb-2">
+              <label className="mb-2 block text-sm text-white/60">
                 Email address
               </label>
 
@@ -101,12 +133,12 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
                 required
-                className="w-full bg-transparent border-b border-white/20 py-3 outline-none focus:border-white transition placeholder:text-white/20"
+                className="w-full border-b border-white/20 bg-transparent py-3 outline-none transition placeholder:text-white/20 focus:border-white"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-white/60 mb-2">
+              <label className="mb-2 block text-sm text-white/60">
                 Password
               </label>
 
@@ -117,7 +149,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
-                  className="w-full bg-transparent border-b border-white/20 py-3 pr-20 outline-none focus:border-white transition placeholder:text-white/20"
+                  className="w-full border-b border-white/20 bg-transparent py-3 pr-20 outline-none transition placeholder:text-white/20 focus:border-white"
                 />
 
                 <button
@@ -137,30 +169,30 @@ export default function LoginPage() {
             )}
 
             <div className="flex justify-end">
-              <button
-                type="button"
+              <Link
+                href="/forgot-password"
                 className="text-sm text-white/40 hover:text-white"
               >
                 Forgot password?
-              </button>
+              </Link>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-white text-black py-4 rounded-full font-semibold hover:bg-white/80 transition disabled:opacity-50"
+              className="w-full rounded-full bg-white py-4 font-semibold text-black transition hover:bg-white/80 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? "Signing in..." : "Enter PoliForge →"}
             </button>
           </form>
 
-          <div className="flex items-center gap-4 my-8">
-            <div className="h-px bg-white/10 flex-1" />
+          <div className="my-8 flex items-center gap-4">
+            <div className="h-px flex-1 bg-white/10" />
             <span className="text-xs text-white/20">OR</span>
-            <div className="h-px bg-white/10 flex-1" />
+            <div className="h-px flex-1 bg-white/10" />
           </div>
 
-          <p className="text-center text-sm text-white/30 mt-8">
+          <p className="mt-8 text-center text-sm text-white/30">
             New to PoliForge?{" "}
             <Link
               href="/signup"
