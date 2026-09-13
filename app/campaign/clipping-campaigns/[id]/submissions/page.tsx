@@ -176,30 +176,55 @@ export default function CampaignSubmissionsPage() {
           reason.trim() || "Submission did not meet the campaign requirements.";
       }
 
-      const { data: updatedSubmission, error: updateError } =
-        await supabase
-          .from("submissions")
-          .update({
-            status,
-            rejection_reason: rejectionReason,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", submissionId)
-          .eq("clipping_campaign_id", campaignId)
-          .select()
-          .single();
+      if (status === "Approved") {
+        const { data: payoutResult, error: payoutError } =
+          await supabase.rpc(
+            "approve_submission_with_payout",
+            {
+              p_submission_id: submissionId,
+            }
+          );
 
-      if (updateError) {
-        throw new Error(updateError.message);
+        if (payoutError) {
+          throw new Error(payoutError.message);
+        }
+
+        if (!payoutResult?.success) {
+          throw new Error(
+            payoutResult?.message ||
+              "Unable to approve submission."
+          );
+        }
+      } else {
+        const { data: updatedSubmission, error: updateError } =
+          await supabase
+            .from("submissions")
+            .update({
+              status,
+              rejection_reason: rejectionReason,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", submissionId)
+            .eq("clipping_campaign_id", campaignId)
+            .select()
+            .single();
+
+        if (updateError) {
+          throw new Error(updateError.message);
+        }
+
+        setSubmissions((current) =>
+          current.map((submission) =>
+            submission.id === submissionId
+              ? (updatedSubmission as Submission)
+              : submission
+          )
+        );
+
+        return;
       }
 
-      setSubmissions((current) =>
-        current.map((submission) =>
-          submission.id === submissionId
-            ? (updatedSubmission as Submission)
-            : submission
-        )
-      );
+      await loadPage();
     } catch (err) {
       console.error(
         "SUBMISSION STATUS UPDATE ERROR:",
