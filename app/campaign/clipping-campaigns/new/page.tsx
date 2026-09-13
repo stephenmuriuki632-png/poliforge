@@ -105,27 +105,35 @@ export default function NewCampaignPage() {
         return;
       }
 
-      const { data: createdCampaign, error: insertError } =
-        await supabase
-          .from("clipping_campaigns")
-          .insert({
-            campaign_id: campaignId,
-            title: name.trim(),
-            description: description.trim() || null,
-            reward: APPROVAL_REWARD,
-            views_rate: VIEWS_RATE,
-            max_earnings: parsedMaxEarnings,
-            amount_placed: parsedAmountPlaced,
-            status,
-          })
-          .select()
-          .single();
+      const { data: allocationResult, error: allocationError } =
+        await supabase.rpc(
+          "create_clipping_campaign_with_allocation",
+          {
+            p_campaign_id: campaignId,
+            p_title: name.trim(),
+            p_description: description.trim(),
+            p_reward: APPROVAL_REWARD,
+            p_views_rate: VIEWS_RATE,
+            p_max_earnings: parsedMaxEarnings,
+            p_amount_placed: parsedAmountPlaced,
+            p_status: status,
+          }
+        );
 
-      console.log("CLIPPING CAMPAIGN CREATED:", createdCampaign);
+      console.log("CLIPPING CAMPAIGN ALLOCATION RESULT:", allocationResult);
 
-      if (insertError) {
-        console.error(insertError);
-        setError(insertError.message);
+      if (allocationError) {
+        console.error(allocationError);
+        setError(allocationError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (!allocationResult?.success) {
+        setError(
+          allocationResult?.message ||
+            "Unable to create clipping campaign."
+        );
         setLoading(false);
         return;
       }
